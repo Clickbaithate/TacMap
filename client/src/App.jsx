@@ -7,7 +7,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/join" element={<RoomPage />} />
+        <Route path="/join/:roomId" element={<RoomPage />} />
       </Routes>
     </Router>
   );
