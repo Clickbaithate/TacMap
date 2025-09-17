@@ -1,7 +1,9 @@
+import HomePage from "./pages/HomePage";
+
 const App = () => {
   return(
-    <div className="">
-      Hello, World!
+    <div className="w-full h-screen flex items-center justify-center">
+      <HomePage/>
     </div>
   );
 }
