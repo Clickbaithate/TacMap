@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import bgImg from "../assets/background.jpg";
-import { isMobile } from "react-device-detect";
 
 const HomePage = () => {
 
