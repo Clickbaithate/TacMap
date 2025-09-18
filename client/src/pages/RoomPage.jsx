@@ -1,15 +1,76 @@
 import { FaPaintbrush, FaArrowRight, FaShapes, FaCaretDown } from "react-icons/fa6";
 import { FaUndo, FaRedo, FaTrash } from "react-icons/fa";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, useLayoutEffect } from "react";
+import rough from "roughjs";
 
 const RoomPage = () => {
 
   const colorInputRef = useRef(null);
+
   const [color, setColor] = useState("#ff0000");
   const [tool, setTool] = useState(0);
   const [userCount, setUserCount] = useState(0);
+  const [elements, setElements] = useState([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  const roughGenerator = rough.generator();
+  const canvasRef = useRef(null);
+  const ctxRef = useRef(null);
+
   const handleColorClick = () => colorInputRef.current.click();
   const handleColorChange = (e) => setColor(e.target.value);
+  const handleMouseDown = (e) => {
+    const { offsetX, offsetY } = e.nativeEvent;
+    setIsDrawing(true);
+    setElements((prevElements) => [
+      ...prevElements, {
+        type: "pencil",
+        x: offsetX, 
+        y: offsetY,
+        path: [[offsetX, offsetY]],
+        stroke: "black",
+
+      }
+    ]);
+  }
+  const handleMouseMove = (e) => {
+    const { offsetX, offsetY } = e.nativeEvent;
+    if (isDrawing) {
+      const { path } = elements[elements.length - 1];
+      const newPath = [...path, [offsetX, offsetY]];
+
+      setElements((prevElements) => 
+        prevElements.map((ele, index) => {
+          if (index === elements.length - 1) {
+            return {
+              ...ele,
+              path: newPath
+            }
+          } else {
+            return ele;
+          }
+        })
+      )
+    }
+
+  }
+  const handleMouseUp = (e) => {
+    const { offsetX, offsetY } = e.nativeEvent;
+    setIsDrawing(false);
+  }
+
+  useLayoutEffect(() => {
+    const roughCanvas = rough.canvas(canvasRef.current);
+    elements.forEach((element) => {
+      roughCanvas.linearPath(element.path);
+    })
+  }, [elements]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctxRef.current = ctx;
+  }, []);
 
   return(
     <div className="w-full h-screen flex flex-col items-center">
@@ -47,9 +108,13 @@ const RoomPage = () => {
           </div>
         </div>
         {/* Canvas */}
-        <div className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100">
-
-        </div>
+        <canvas 
+          className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100" 
+          ref={canvasRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        />
       </div>
     </div>
   );
