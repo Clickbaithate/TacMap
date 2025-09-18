@@ -1,28 +1,50 @@
+import { useEffect } from "react";
+import bgImg from "../assets/background.jpg";
+import { isMobile } from "react-device-detect";
+
 const HomePage = () => {
- return(
-  <div className="w-full h-screen flex items-center justify-center">
-    <div className="w-1/2 h-3/4 bg-yellow-200 relative flex flex-col items-center justify-center space-y-8">
-      <p className="absolute top-10 left-1/2 text-3xl font-bold italic -ml-[75px]">Create Room</p>
-      <div className="flex flex-col items-center justify-center w-1/2 space-y-2">
-        <input type="text" placeholder="Enter your name" className="w-full p-2 border-2 rounded-md" />
-        <div className="flex items-center justify-center w-full space-x-1">
-          <div className="w-full p-2 border-2 rounded-md">Generate Room Code</div>
-          <div className="p-2 bg-blue-500 text-white rounded-md">Generate</div>
-          <div className="py-2 px-3 border-2 border-red-500 rounded-md">Copy</div>
+
+  useEffect(() => {
+    
+  }, [])
+
+  return(
+    <div 
+      className="w-full h-full flex flex-col md:flex-row items-center justify-center space-y-6 md:space-y-0 md:px-12 md:space-x-6 font-lilita" 
+      style={{ backgroundImage: `url(${bgImg})` }}
+    >
+      {/* Create Room */}
+      <div className="w-3/4 md:w-2/5 h-2/5 flex flex-col items-center justify-evenly rounded-xl bg-white/95">
+        {/* Title */}
+        <p className="text-2xl md:text-4xl text-blue-400">Create Room</p>
+        {/* Inputs */}
+        <div className="w-full flex flex-col items-center justify-center space-y-2">
+          <input type="text" placeholder="Junko SSG" className="w-[90%] p-2 border-2 rounded-md text-center italic bg-white" />
+          <div className="w-[90%] flex items-center justify-center space-x-1">
+            <div className="w-full p-2 rounded-md text-sm text-center truncate bg-gray-300">Generate Code</div>
+            <button className="p-2 rounded-md text-sm cursor-pointer text-white bg-cyan-500 hover:bg-cyan-400">Generate</button>
+            <button className="p-2 rounded-md text-sm border-2 cursor-pointer text-red-500 border-red-500 hover:bg-red-500 hover:text-white">Copy</button>
+          </div>
         </div>
+        {/* Button */}
+        <button className="w-[90%] p-3 rounded-md cursor-pointer text-white bg-yellow-500 hover:bg-yellow-400">Generate Room</button>
       </div>
-      <button className="p-3 w-1/2 rounded-md bg-blue-500 text-white">Generate Room</button>
-    </div>
-    <div className="w-1/2 h-3/4 bg-red-200 relative flex flex-col items-center justify-center space-y-8">
-      <p className="absolute top-10 left-1/2 text-3xl font-bold italic -ml-[75px]">Join Room</p>
-      <div className="flex flex-col w-full items-center justify-center space-y-3">
-        <input type="text" placeholder="Enter your name" className="p-2 border-2 w-1/2 rounded-md" />
-        <input type="text" placeholder="Enter your room code" className="p-2 border-2 w-1/2 rounded-md" />
+
+      {/* Join Room */}
+      <div className="w-3/4 md:w-2/5 h-2/5 flex flex-col items-center justify-evenly rounded-xl bg-white/95">
+        {/* Title */}
+        <p className="text-2xl md:text-4xl text-blue-400">Join Room</p>
+        {/* Inputs */}
+        <div className="w-full flex flex-col items-center justify-center space-y-2">
+          <input type="text" placeholder="FaZe Blaziken" className="w-[90%] p-2 border-2 rounded-md text-center italic bg-white" />
+          <input type="text" placeholder="0187d-cf1b-7cc2-82f0-9b" className="w-[90%] p-2 border-2 rounded-md text-center italic bg-white" />
+        </div>
+        {/* Button */}
+        <button className="w-[90%] p-3 rounded-md cursor-pointer text-white bg-purple-500 hover:bg-purple-400">Join Room</button>
       </div>
-      <button className="w-1/2 p-3 border-2 rounded-md">Join Room</button>
     </div>
-  </div>
- );
+  );
+
 }
 
 export default HomePage;
