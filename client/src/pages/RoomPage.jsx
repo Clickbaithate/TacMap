@@ -186,6 +186,9 @@ const RoomPage = () => {
           <canvas 
             className="" 
             ref={canvasRef}
+            onPointerDown={handleMouseDown}
+            onPointerMove={handleMouseMove}
+            onPointerUp={handleMouseUp}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
