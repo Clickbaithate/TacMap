@@ -8,7 +8,7 @@ const RoomPage = () => {
   const colorInputRef = useRef(null);
 
   const [color, setColor] = useState("#ff0000");
-  const [tool, setTool] = useState(0);
+  const [tool, setTool] = useState("pencil");
   const [userCount, setUserCount] = useState(0);
   const [elements, setElements] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -19,38 +19,95 @@ const RoomPage = () => {
 
   const handleColorClick = () => colorInputRef.current.click();
   const handleColorChange = (e) => setColor(e.target.value);
+
+  // Mouse Down
   const handleMouseDown = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;
-    setIsDrawing(true);
-    setElements((prevElements) => [
-      ...prevElements, {
-        type: "pencil",
-        x: offsetX, 
-        y: offsetY,
-        path: [[offsetX, offsetY]],
-        stroke: "black",
+    if (tool === "pencil") {
+      setElements((prevElements) => [
+        ...prevElements, {
+          type: "pencil",
+          x: offsetX, 
+          y: offsetY,
+          path: [[offsetX, offsetY]],
+          stroke: "black",
 
-      }
-    ]);
+        }
+      ]);
+    } else if (tool === "line") {
+      setElements((prevElements) => [
+        ...prevElements, {
+          type: "line",
+          offsetX, 
+          offsetY,
+          width: offsetX, 
+          height: offsetY, 
+          stroke: "black"
+        }
+      ]);
+    } else if (tool === "shape") {
+      setElements((prevElements) => [
+        ...prevElements, {
+          type: "shape", 
+          offsetX, 
+          offsetY, 
+          width: 0, 
+          height: 0, 
+          stroke: "black"
+        }
+      ]);
+    }
+    setIsDrawing(true);
   }
+
+  // Mouse Move
   const handleMouseMove = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;
     if (isDrawing) {
-      const { path } = elements[elements.length - 1];
-      const newPath = [...path, [offsetX, offsetY]];
-
-      setElements((prevElements) => 
-        prevElements.map((ele, index) => {
-          if (index === elements.length - 1) {
-            return {
-              ...ele,
-              path: newPath
+      if (tool === "pencil") {
+        const { path } = elements[elements.length - 1];
+        const newPath = [...path, [offsetX, offsetY]];
+        setElements((prevElements) => 
+          prevElements.map((ele, index) => {
+            if (index === elements.length - 1) {
+              return {
+                ...ele,
+                path: newPath
+              }
+            } else {
+              return ele;
             }
-          } else {
-            return ele;
-          }
-        })
-      )
+          })
+        )
+      } else if (tool === "line") {
+        setElements((prevElements) => 
+          prevElements.map((ele, index) => {
+            if (index === elements.length - 1) {
+              return {
+                ...ele,
+                width: offsetX,
+                height: offsetY
+              };
+            } else {
+              return ele;
+            }
+          })
+        )
+      } else if (tool === "shape") {
+        setElements((prevElements) => 
+          prevElements.map((ele, index) => {
+            if (index === elements.length - 1) {
+              return {
+                ...ele,
+                width: offsetX - ele.offsetX, 
+                height: offsetY - ele.offsetY
+              };
+            } else {
+              return ele;
+            }
+          })
+        )
+      }
     }
 
   }
@@ -61,13 +118,30 @@ const RoomPage = () => {
 
   useLayoutEffect(() => {
     const roughCanvas = rough.canvas(canvasRef.current);
+
+    if (elements.length > 0) {
+      ctxRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+
     elements.forEach((element) => {
-      roughCanvas.linearPath(element.path);
+      if (element.type === "pencil") {
+        roughCanvas.linearPath(element.path);
+      } else if (element.type === "line") {
+        roughCanvas.draw(
+          roughGenerator.line(element.offsetX, element.offsetY, element.width, element.height)
+        );
+      } else if (element.type === "shape") {
+        roughCanvas.draw(
+          roughGenerator.rectangle(element.offsetX, element.offsetY, element.width, element.height)
+        )
+      }
     })
   }, [elements]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    canvas.height = window.innerHeight * 2;
+    canvas.width = window.innerWidth * 2;
     const ctx = canvas.getContext("2d");
     ctxRef.current = ctx;
   }, []);
@@ -86,9 +160,9 @@ const RoomPage = () => {
           {/* Tools and Color */}
           <div className="w-full h-full flex items-center justify-start space-x-4 pl-2 md:pl-24">
             <div className="flex items-center space-x-2">
-              <div className={`border-2 p-1 rounded-md ${tool === 0 ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool(0)}><FaPaintbrush/></div>
-              <div className={`border-2 p-1 rounded-md ${tool === 1 ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool(1)}><FaArrowRight/></div>
-              <div className={`border-2 p-1 rounded-md ${tool === 2 ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool(2)}><FaShapes/></div>
+              <div className={`border-2 p-1 rounded-md ${tool === "pencil" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("pencil")}><FaPaintbrush/></div>
+              <div className={`border-2 p-1 rounded-md ${tool === "line" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("line")}><FaArrowRight/></div>
+              <div className={`border-2 p-1 rounded-md ${tool === "shape" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("shape")}><FaShapes/></div>
             </div>
             {/* Custom Color Picker */}
             <div className="flex items-center cursor-pointer px-2 py-1 bg-white rounded-md border border-gray-400" onClick={handleColorClick}>
@@ -108,13 +182,15 @@ const RoomPage = () => {
           </div>
         </div>
         {/* Canvas */}
-        <canvas 
-          className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100" 
-          ref={canvasRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-        />
+        <div className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100 overflow-hidden">
+          <canvas 
+            className="" 
+            ref={canvasRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+          />
+        </div>
       </div>
     </div>
   );
