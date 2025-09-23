@@ -184,7 +184,7 @@ const RoomPage = () => {
         {/* Canvas */}
         <div className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100 overflow-hidden">
           <canvas 
-            className="" 
+            className="touch-none" 
             ref={canvasRef}
             onPointerDown={handleMouseDown}
             onPointerMove={handleMouseMove}
