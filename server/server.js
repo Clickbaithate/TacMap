@@ -6,7 +6,14 @@ const { Server } = require("socket.io");
 const io = new Server(server);
 
 io.on("connection", (socket) => {
-  console.log("User connected!");
+  socket.on("userJoined", (data) => {
+    const { name, userId, roomId, host, presenter } = data;
+    socket.join(roomId);
+    socket.emit("userIsJoined", { success: true });
+
+    const usersInRoom = io.sockets.adapter.rooms.get(roomId);
+    console.log(`Users in room ${roomId}:`, usersInRoom ? [...usersInRoom] : []);
+  });
 });
 
 // Routes
