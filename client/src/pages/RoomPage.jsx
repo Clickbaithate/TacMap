@@ -12,6 +12,7 @@ const RoomPage = () => {
   const [userCount, setUserCount] = useState(0);
   const [elements, setElements] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [history, setHistory] = useState([]);
 
   const roughGenerator = rough.generator();
   const canvasRef = useRef(null);
@@ -19,6 +20,33 @@ const RoomPage = () => {
 
   const handleColorClick = () => colorInputRef.current.click();
   const handleColorChange = (e) => setColor(e.target.value);
+
+  const undo = () => {
+    if (elements.length === 1) {
+      setHistory((prev) => [...prev, elements[elements.length - 1]]);
+      handleClearCanvas();
+    } else {
+      setElements((prev) => prev.slice(0, -1));
+      setHistory((prev) => [...prev, elements[elements.length - 1]]);
+    }
+  }
+
+  const redo = () => {
+    setElements((prevElements) => [
+      ...prevElements,
+      history[history.length - 1]
+    ]);
+    setHistory((prevHistory) => prevHistory.slice(0, prevHistory.length - 1));
+  }
+
+  // Handle Canvas Clear
+  const handleCanvasCLear = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctx.fillRect = "white";
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    setElements([]);
+  }
 
   // Mouse Down
   const handleMouseDown = (e) => {
@@ -30,7 +58,7 @@ const RoomPage = () => {
           x: offsetX, 
           y: offsetY,
           path: [[offsetX, offsetY]],
-          stroke: "black",
+          stroke: color,
 
         }
       ]);
@@ -42,7 +70,7 @@ const RoomPage = () => {
           offsetY,
           width: offsetX, 
           height: offsetY, 
-          stroke: "black"
+          stroke: color
         }
       ]);
     } else if (tool === "shape") {
@@ -53,7 +81,7 @@ const RoomPage = () => {
           offsetY, 
           width: 0, 
           height: 0, 
-          stroke: "black"
+          stroke: color
         }
       ]);
     }
@@ -125,14 +153,14 @@ const RoomPage = () => {
 
     elements.forEach((element) => {
       if (element.type === "pencil") {
-        roughCanvas.linearPath(element.path);
+        roughCanvas.linearPath(element.path, { stroke: element.stroke, strokeWidth: 5, roughness: 0 });
       } else if (element.type === "line") {
         roughCanvas.draw(
-          roughGenerator.line(element.offsetX, element.offsetY, element.width, element.height)
+          roughGenerator.line(element.offsetX, element.offsetY, element.width, element.height, { stroke: element.stroke, strokeWidth: 5, roughtness: 0 })
         );
       } else if (element.type === "shape") {
         roughCanvas.draw(
-          roughGenerator.rectangle(element.offsetX, element.offsetY, element.width, element.height)
+          roughGenerator.rectangle(element.offsetX, element.offsetY, element.width, element.height, { stroke: element.stroke, strokeWidth: 5, roughtness: 0 })
         )
       }
     })
@@ -143,8 +171,15 @@ const RoomPage = () => {
     canvas.height = window.innerHeight * 2;
     canvas.width = window.innerWidth * 2;
     const ctx = canvas.getContext("2d");
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
     ctxRef.current = ctx;
   }, []);
+
+  useEffect(() => {
+    ctxRef.current.strokeStyle = color;
+  }, [color]);
 
   return(
     <div className="w-full h-screen flex flex-col items-center">
@@ -175,10 +210,24 @@ const RoomPage = () => {
           {/* Edits */}
           <div className="w-full h-full flex items-center justify-end space-x-4 pr-2 md:pr-24">
             <div className="flex items-center justify-center space-x-2">
-              <div className="border-2 py-1 px-2 rounded-md border-gray-400"><FaUndo/></div>
-              <div className="border-2 py-1 px-2 rounded-md border-gray-400"><FaRedo/></div>
+              {/* Undo Button */}
+              <button 
+                className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
+                disabled={elements.length === 0}
+                onClick={() => undo()}
+              >
+                <FaUndo/>
+              </button>
+              {/* Redo Button */}
+              <button 
+                className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
+                disabled={history.length < 1}
+                onClick={() => redo()}
+              >
+                <FaRedo/>
+              </button>
             </div>
-            <div className="border-2 py-1 px-2 rounded-md border-gray-400"><FaTrash/></div>
+            <div className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer hover:text-red-500" onClick={handleCanvasCLear}><FaTrash/></div>
           </div>
         </div>
         {/* Canvas */}
