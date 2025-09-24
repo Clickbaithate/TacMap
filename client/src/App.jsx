@@ -4,7 +4,7 @@ import HomePage from "./pages/HomePage";
 import RoomPage from "./pages/RoomPage";
 import { useEffect, useState } from "react";
 
-const server = "http://localhost:5000";
+const server = import.meta.env.VITE_SERVER_URL;
 const connectionOptions = {
   "force new connection": true,
   reconnectionAttempts: "Infinity",
