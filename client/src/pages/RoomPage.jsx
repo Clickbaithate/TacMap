@@ -2,16 +2,19 @@ import { FaPaintbrush, FaArrowRight, FaShapes, FaCaretDown } from "react-icons/f
 import { FaUndo, FaRedo, FaTrash } from "react-icons/fa";
 import { useEffect, useRef, useState, useLayoutEffect } from "react";
 import rough from "roughjs";
+import { useParams } from "react-router-dom";
 
-const RoomPage = () => {
+const RoomPage = ({ socket }) => {
 
   const colorInputRef = useRef(null);
+  const { roomId } = useParams();
 
   const [color, setColor] = useState("#ff0000");
   const [tool, setTool] = useState("pencil");
   const [userCount, setUserCount] = useState(0);
   const [elements, setElements] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [img, setImg] = useState(null);
   const [history, setHistory] = useState([]);
 
   const roughGenerator = rough.generator();
@@ -24,7 +27,7 @@ const RoomPage = () => {
   const undo = () => {
     if (elements.length === 1) {
       setHistory((prev) => [...prev, elements[elements.length - 1]]);
-      handleClearCanvas();
+      handleCanvasClear();
     } else {
       setElements((prev) => prev.slice(0, -1));
       setHistory((prev) => [...prev, elements[elements.length - 1]]);
@@ -40,7 +43,7 @@ const RoomPage = () => {
   }
 
   // Handle Canvas Clear
-  const handleCanvasCLear = () => {
+  const handleCanvasClear = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     ctx.fillRect = "white";
@@ -144,27 +147,39 @@ const RoomPage = () => {
     setIsDrawing(false);
   }
 
+  // Assume you already have `roomId` from props or route params
+  const handleSync = () => {
+    const canvasImage = canvasRef.current.toDataURL("image/png");
+    socket.emit("whiteboardData", { roomId, imgURL: canvasImage });
+  };
+
   useLayoutEffect(() => {
     const roughCanvas = rough.canvas(canvasRef.current);
-
+  
     if (elements.length > 0) {
       ctxRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     }
-
+  
     elements.forEach((element) => {
       if (element.type === "pencil") {
         roughCanvas.linearPath(element.path, { stroke: element.stroke, strokeWidth: 5, roughness: 0 });
       } else if (element.type === "line") {
         roughCanvas.draw(
-          roughGenerator.line(element.offsetX, element.offsetY, element.width, element.height, { stroke: element.stroke, strokeWidth: 5, roughtness: 0 })
+          roughGenerator.line(element.offsetX, element.offsetY, element.width, element.height, { stroke: element.stroke, strokeWidth: 5 })
         );
       } else if (element.type === "shape") {
         roughCanvas.draw(
-          roughGenerator.rectangle(element.offsetX, element.offsetY, element.width, element.height, { stroke: element.stroke, strokeWidth: 5, roughtness: 0 })
-        )
+          roughGenerator.rectangle(element.offsetX, element.offsetY, element.width, element.height, { stroke: element.stroke, strokeWidth: 5 })
+        );
       }
-    })
+    });
+  
+    handleSync(); // send image to server
   }, [elements]);
+  
+  useEffect(() => {
+    socket.emit("userJoined", { roomId });
+  }, [socket, roomId]);  
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -175,6 +190,12 @@ const RoomPage = () => {
     ctx.lineWidth = 5;
     ctx.lineCap = "round";
     ctxRef.current = ctx;
+  }, []);
+
+  useEffect(() => {
+    socket.on("whiteboardDataResponse", (data) => {
+      setImg(data.imgURL);
+    });
   }, []);
 
   useEffect(() => {
@@ -227,11 +248,11 @@ const RoomPage = () => {
                 <FaRedo/>
               </button>
             </div>
-            <div className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer hover:text-red-500" onClick={handleCanvasCLear}><FaTrash/></div>
+            <div className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer hover:text-red-500" onClick={handleCanvasClear}><FaTrash/></div>
           </div>
         </div>
         {/* Canvas */}
-        <div className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100 overflow-hidden">
+        <div className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100 overflow-hidden" style={{ background: `url(${img})` }}>
           <canvas 
             className="touch-none" 
             ref={canvasRef}

@@ -29,7 +29,7 @@ const App = () => {
     <div className="w-full h-screen flex">
       <Routes>
         <Route path="/" element={<HomePage socket={socket} setUser={setUser} />} />
-        <Route path="/:roomId" element={<RoomPage/>} />
+        <Route path="/:roomId" element={<RoomPage socket={socket} />} />
       </Routes>
     </div>
   );
