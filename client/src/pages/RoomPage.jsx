@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useLayoutEffect } from "react";
 import rough from "roughjs";
 
 const RoomPage = ({ user, socket }) => {
-
   const colorInputRef = useRef(null);
 
   const [color, setColor] = useState("#ff0000");
@@ -23,166 +22,125 @@ const RoomPage = ({ user, socket }) => {
   const handleColorChange = (e) => setColor(e.target.value);
 
   const undo = () => {
+    if (elements.length === 0) return;
     if (elements.length === 1) {
       setHistory((prev) => [...prev, elements[elements.length - 1]]);
-      handleClearCanvas();
+      handleCanvasClear();
     } else {
       setElements((prev) => prev.slice(0, -1));
       setHistory((prev) => [...prev, elements[elements.length - 1]]);
     }
-  }
+  };
 
   const redo = () => {
+    if (history.length === 0) return;
     setElements((prevElements) => [
       ...prevElements,
       history[history.length - 1]
     ]);
     setHistory((prevHistory) => prevHistory.slice(0, prevHistory.length - 1));
-  }
+  };
 
   // Handle Canvas Clear
-  const handleCanvasCLear = () => {
+  const handleCanvasClear = () => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    ctx.fillRect = "white";
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     setElements([]);
-  }
+  };
 
   // Mouse Down
   const handleMouseDown = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;
     if (tool === "pencil") {
-      setElements((prevElements) => [
-        ...prevElements, {
-          type: "pencil",
-          x: offsetX, 
-          y: offsetY,
-          path: [[offsetX, offsetY]],
-          stroke: color,
-
-        }
+      setElements((prev) => [
+        ...prev,
+        { type: "pencil", x: offsetX, y: offsetY, path: [[offsetX, offsetY]], stroke: color }
       ]);
     } else if (tool === "line") {
-      setElements((prevElements) => [
-        ...prevElements, {
-          type: "line",
-          offsetX, 
-          offsetY,
-          width: offsetX, 
-          height: offsetY, 
-          stroke: color
-        }
+      setElements((prev) => [
+        ...prev,
+        { type: "line", offsetX, offsetY, width: offsetX, height: offsetY, stroke: color }
       ]);
     } else if (tool === "shape") {
-      setElements((prevElements) => [
-        ...prevElements, {
-          type: "shape", 
-          offsetX, 
-          offsetY, 
-          width: 0, 
-          height: 0, 
-          stroke: color
-        }
+      setElements((prev) => [
+        ...prev,
+        { type: "shape", offsetX, offsetY, width: 0, height: 0, stroke: color }
       ]);
     }
     setIsDrawing(true);
-  }
+  };
 
   // Mouse Move
   const handleMouseMove = (e) => {
+    if (!isDrawing) return;
     const { offsetX, offsetY } = e.nativeEvent;
-    if (isDrawing) {
-      if (tool === "pencil") {
-        const { path } = elements[elements.length - 1];
-        const newPath = [...path, [offsetX, offsetY]];
-        setElements((prevElements) => 
-          prevElements.map((ele, index) => {
-            if (index === elements.length - 1) {
-              return {
-                ...ele,
-                path: newPath
-              }
-            } else {
-              return ele;
-            }
-          })
-        )
-      } else if (tool === "line") {
-        setElements((prevElements) => 
-          prevElements.map((ele, index) => {
-            if (index === elements.length - 1) {
-              return {
-                ...ele,
-                width: offsetX,
-                height: offsetY
-              };
-            } else {
-              return ele;
-            }
-          })
-        )
-      } else if (tool === "shape") {
-        setElements((prevElements) => 
-          prevElements.map((ele, index) => {
-            if (index === elements.length - 1) {
-              return {
-                ...ele,
-                width: offsetX - ele.offsetX, 
-                height: offsetY - ele.offsetY
-              };
-            } else {
-              return ele;
-            }
-          })
-        )
-      }
-    }
+    setElements((prevElements) =>
+      prevElements.map((ele, index) => {
+        if (index !== prevElements.length - 1) return ele;
 
-  }
-  const handleMouseUp = (e) => {
-    const { offsetX, offsetY } = e.nativeEvent;
-    setIsDrawing(false);
-  }
+        if (tool === "pencil") {
+          return { ...ele, path: [...ele.path, [offsetX, offsetY]] };
+        } else if (tool === "line") {
+          return { ...ele, width: offsetX, height: offsetY };
+        } else if (tool === "shape") {
+          return {
+            ...ele,
+            width: offsetX - ele.offsetX,
+            height: offsetY - ele.offsetY
+          };
+        }
+        return ele;
+      })
+    );
+  };
 
+  const handleMouseUp = () => setIsDrawing(false);
+
+  // Drawing effect
   useLayoutEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !ctxRef.current) return;
     const roughCanvas = rough.canvas(canvasRef.current);
 
-    if (elements.length > 0) {
-      ctxRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    }
+    ctxRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
     elements.forEach((element) => {
       if (element.type === "pencil") {
         roughCanvas.linearPath(element.path, { stroke: element.stroke, strokeWidth: 5, roughness: 0 });
       } else if (element.type === "line") {
         roughCanvas.draw(
-          roughGenerator.line(element.offsetX, element.offsetY, element.width, element.height, { stroke: element.stroke, strokeWidth: 5, roughtness: 0 })
+          roughGenerator.line(element.offsetX, element.offsetY, element.width, element.height, {
+            stroke: element.stroke,
+            strokeWidth: 5,
+            roughness: 0
+          })
         );
       } else if (element.type === "shape") {
         roughCanvas.draw(
-          roughGenerator.rectangle(element.offsetX, element.offsetY, element.width, element.height, { stroke: element.stroke, strokeWidth: 5, roughtness: 0 })
-        )
+          roughGenerator.rectangle(element.offsetX, element.offsetY, element.width, element.height, {
+            stroke: element.stroke,
+            strokeWidth: 5,
+            roughness: 0
+          })
+        );
       }
-    })
+    });
 
-    const canvasImage = canvasRef.current.toDataURL();
-    socket.emit(
-      "whiteboardData",
-      { canvasImage, roomId: user.roomId },
-      (response) => {
-        console.log("[client] server ack:", response);
-      }
-    );
-  }, [elements]);
+    if (user?.roomId) {
+      const canvasImage = canvasRef.current.toDataURL();
+      console.log("[client] emitting whiteboardData:", { roomId: user.roomId });
+      socket.emit("whiteboardData", { canvasImage, roomId: user.roomId }, (ack) => {
+        console.log("[client] whiteboardData ack:", ack);
+      });
+    }
+  }, [elements, socket, user?.roomId]);
 
+  // Initialize canvas
   useEffect(() => {
     if (!user?.presenter) return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     canvas.height = window.innerHeight * 2;
     canvas.width = window.innerWidth * 2;
     const ctx = canvas.getContext("2d");
@@ -190,94 +148,93 @@ const RoomPage = ({ user, socket }) => {
     ctx.lineWidth = 5;
     ctx.lineCap = "round";
     ctxRef.current = ctx;
-  }, []);
+  }, [user?.presenter]);
 
+  // Joining a room
   useEffect(() => {
-    socket.on("whiteboardDataResponse", (data) => {
-      setImg(data.img);
+    if (!user?.roomId) return;
+    console.log("[client] emitting userJoined:", user.roomId);
+    socket.emit("userJoined", { roomId: user.roomId }, (ack) => {
+      console.log("[client] userJoined ack:", ack);
     });
-  }, []);
+  }, [socket, user?.roomId]);
+
+  // Receiving updates
+  useEffect(() => {
+    const listener = (data) => {
+      console.log("[client] got whiteboardDataResponse:", data.roomId);
+      if (user?.roomId && data.roomId === user.roomId) {
+        setImg(data.img);
+      }
+    };
+    socket.on("whiteboardDataResponse", listener);
+    return () => socket.off("whiteboardDataResponse", listener);
+  }, [socket, user?.roomId]);
 
   useEffect(() => {
     if (!ctxRef.current) return;
     ctxRef.current.strokeStyle = color;
   }, [color]);
 
-  return(
+  return (
     <div className="w-full h-screen flex flex-col items-center">
       {/* Title */}
       <div className="flex flex-col items-center -space-y-6">
         <p className="text-6xl font-honk p-6">TacMap</p>
         <p className="text-sm font-lilita italic">Users Online: {userCount}</p>
       </div>
+
       {/* Options */}
       <div className="w-full h-full flex flex-col items-center justify-start">
         {/* Top Bar */}
-        { 
-          user?.presenter ?
-            <div className="w-full h-16 flex mb-6">
-              {/* Tools and Color */}
-              <div className="w-full h-full flex items-center justify-start space-x-4 pl-2 md:pl-24">
-                <div className="flex items-center space-x-2">
-                  <div className={`border-2 p-1 rounded-md ${tool === "pencil" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("pencil")}><FaPaintbrush/></div>
-                  <div className={`border-2 p-1 rounded-md ${tool === "line" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("line")}><FaArrowRight/></div>
-                  <div className={`border-2 p-1 rounded-md ${tool === "shape" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("shape")}><FaShapes/></div>
-                </div>
-                {/* Custom Color Picker */}
-                <div className="flex items-center cursor-pointer px-2 py-1 bg-white rounded-md border border-gray-400" onClick={handleColorClick}>
-                  <div className="w-6 h-6 rounded-full border border-gray-400" style={{ backgroundColor: color }}/>
-                  <FaCaretDown className="ml-2 text-gray-700" />
-                </div>
-                {/* Invisible Color Picker */}
-                <input type="color" ref={colorInputRef} value={color} onChange={handleColorChange} className="invisible absolute top-34" />
+        {user?.presenter && (
+          <div className="w-full h-16 flex mb-6">
+            {/* Tools and Color */}
+            <div className="w-full h-full flex items-center justify-start space-x-4 pl-2 md:pl-24">
+              <div className="flex items-center space-x-2">
+                <div className={`border-2 p-1 rounded-md ${tool === "pencil" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("pencil")}><FaPaintbrush /></div>
+                <div className={`border-2 p-1 rounded-md ${tool === "line" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("line")}><FaArrowRight /></div>
+                <div className={`border-2 p-1 rounded-md ${tool === "shape" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("shape")}><FaShapes /></div>
               </div>
-              {/* Edits */}
-              <div className="w-full h-full flex items-center justify-end space-x-4 pr-2 md:pr-24">
-                <div className="flex items-center justify-center space-x-2">
-                  {/* Undo Button */}
-                  <button 
-                    className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
-                    disabled={elements.length === 0}
-                    onClick={() => undo()}
-                  >
-                    <FaUndo/>
-                  </button>
-                  {/* Redo Button */}
-                  <button 
-                    className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
-                    disabled={history.length < 1}
-                    onClick={() => redo()}
-                  >
-                    <FaRedo/>
-                  </button>
-                </div>
-                <div className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer hover:text-red-500" onClick={handleCanvasCLear}><FaTrash/></div>
-              </div>
-            </div> : 
-          null
-        }
-        {/* Canvas */}
 
-        { user?.presenter ?
+              {/* Custom Color Picker */}
+              <div className="flex items-center cursor-pointer px-2 py-1 bg-white rounded-md border border-gray-400" onClick={handleColorClick}>
+                <div className="w-6 h-6 rounded-full border border-gray-400" style={{ backgroundColor: color }} />
+                <FaCaretDown className="ml-2 text-gray-700" />
+              </div>
+              <input type="color" ref={colorInputRef} value={color} onChange={handleColorChange} className="invisible absolute top-34" />
+            </div>
+
+            {/* Edits */}
+            <div className="w-full h-full flex items-center justify-end space-x-4 pr-2 md:pr-24">
+              <div className="flex items-center justify-center space-x-2">
+                <button className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" disabled={elements.length === 0} onClick={undo}><FaUndo /></button>
+                <button className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" disabled={history.length < 1} onClick={redo}><FaRedo /></button>
+              </div>
+              <div className="border-2 py-1 px-2 rounded-md border-gray-400 cursor-pointer hover:text-red-500" onClick={handleCanvasClear}><FaTrash /></div>
+            </div>
+          </div>
+        )}
+
+        {/* Canvas or Viewer */}
+        {user?.presenter ? (
           <div className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100 overflow-hidden">
-            <canvas 
-              className="touch-none" 
+            <canvas
+              className="touch-none"
               ref={canvasRef}
               onPointerDown={handleMouseDown}
               onPointerMove={handleMouseMove}
               onPointerUp={handleMouseUp}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
             />
-          </div> :
-          <div className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100 overflow-hidden">
-            <img src={img} alt="Realtime Image" />
           </div>
-        }
+        ) : (
+          <div className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100 overflow-hidden">
+            {img && <img src={img} alt="Realtime Whiteboard" />}
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
 
 export default RoomPage;

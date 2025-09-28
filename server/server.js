@@ -14,54 +14,40 @@ const io = new Server(server, {
 const rooms = {}; // { roomId: { img: <lastImage> } }
 
 io.on("connection", (socket) => {
-  console.log("[server] new client connected:", socket.id);
 
-  socket.on("userJoined", (data) => {
+  socket.on("userJoined", (data, ack) => {
     const { roomId } = data;
 
     socket.join(roomId);
 
-    // Initialize room state if not exists
     if (!rooms[roomId]) {
       rooms[roomId] = { img: null };
     }
 
-    // Confirm join to this client
-    socket.emit("userIsJoined", { success: true });
+    // Confirm join back to client
+    if (ack) ack({ success: true, roomId });
 
-    // If there’s already a whiteboard image, send it to the new user
     if (rooms[roomId].img) {
-      socket.emit("whiteboardDataResponse", { img: rooms[roomId].img });
+      socket.emit("whiteboardDataResponse", { img: rooms[roomId].img, roomId });
     }
-
-    // Log current users
-    const usersInRoom = io.sockets.adapter.rooms.get(roomId);
-    console.log(`Users in room ${roomId}:`, usersInRoom ? [...usersInRoom] : []);
   });
 
-  socket.on("whiteboardData", (data, callback) => {
+  socket.on("whiteboardData", (data, ack) => {
     const { canvasImage, roomId } = data;
 
-    console.log(
-      `[server] received image from room ${roomId}, length:`,
-      canvasImage?.length || 0
-    );
-
-    // Save the latest image for this room
     if (roomId && rooms[roomId]) {
       rooms[roomId].img = canvasImage;
-
-      // Broadcast only to this room (excluding sender)
-      socket.to(roomId).emit("whiteboardDataResponse", { img: canvasImage });
+      socket.to(roomId).emit("whiteboardDataResponse", { img: canvasImage, roomId });
     }
 
-    if (callback) callback("ok"); // send ack
+    if (ack) ack({ ok: true, roomId });
   });
 
   socket.on("disconnect", () => {
     console.log("[server] client disconnected:", socket.id);
   });
 });
+
 
 // Routes
 app.get("/", (req, res) => {
