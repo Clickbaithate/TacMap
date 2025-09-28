@@ -168,8 +168,13 @@ const RoomPage = ({ user, socket }) => {
     })
 
     const canvasImage = canvasRef.current.toDataURL();
-    socket.emit("whiteboardData", {canvasImage});
-
+    socket.emit(
+      "whiteboardData",
+      { canvasImage, roomId: user.roomId },
+      (response) => {
+        console.log("[client] server ack:", response);
+      }
+    );
   }, [elements]);
 
   useEffect(() => {
@@ -190,7 +195,6 @@ const RoomPage = ({ user, socket }) => {
   useEffect(() => {
     socket.on("whiteboardDataResponse", (data) => {
       setImg(data.img);
-      console.log("HEY")
     });
   }, []);
 
