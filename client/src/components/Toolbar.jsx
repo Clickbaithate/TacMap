@@ -1,7 +1,7 @@
 import { FaPaintbrush, FaArrowRight, FaShapes, FaCaretDown } from "react-icons/fa6";
 import { FaUndo, FaRedo, FaTrash } from "react-icons/fa";
 
-const Toolbar = ({ tool, handleColorClick, handleColorChange, color, colorInputRef, elements, undo, redo, clearCanvas }) => {
+const Toolbar = ({ tool, setTool, handleColorClick, handleColorChange, color, colorInputRef, elements, undo, redo, clearCanvas }) => {
   
   return(
     <div className="w-full h-16 flex mb-6 justify-between px-6">

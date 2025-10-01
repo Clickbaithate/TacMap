@@ -1,17 +1,18 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
 import rough from "roughjs";
 import { useCanvas } from "../hooks/useCanvas";
 import Title from "../components/Title";
 import Toolbar from "../components/Toolbar";
 
+import temp from "../assets/temp.jpg";
+
 const RoomPage = ({ user, socket }) => {
   const colorInputRef = useRef(null);
-  const roughGenerator = rough.generator();
+  const roughGenerator = useMemo(() => rough.generator(), []);
 
   const {
     canvasRef,
     elements,
-    history,
     color,
     setColor,
     undo,
@@ -25,6 +26,35 @@ const RoomPage = ({ user, socket }) => {
   const [tool, setTool] = useState("pencil");
   const [img, setImg] = useState(null);
   const [userCount, setUserCount] = useState(0);
+  const [map, setMap] = useState(temp);
+
+  // Track CSS and pixel sizes of canvas
+  const [canvasSize, setCanvasSize] = useState(() => {
+    const dpr = window.devicePixelRatio || 1;
+    return {
+      cssWidth: window.innerWidth,
+      cssHeight: window.innerHeight,
+      pixelWidth: window.innerWidth * dpr,
+      pixelHeight: window.innerHeight * dpr,
+      dpr,
+    };
+  });
+
+  // Resize listener (optional, keeps everything responsive)
+  useEffect(() => {
+    const handleResize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      setCanvasSize({
+        cssWidth: window.innerWidth,
+        cssHeight: window.innerHeight,
+        pixelWidth: window.innerWidth * dpr,
+        pixelHeight: window.innerHeight * dpr,
+        dpr,
+      });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleColorClick = () => colorInputRef.current.click();
   const handleColorChange = (e) => setColor(e.target.value);
@@ -38,24 +68,40 @@ const RoomPage = ({ user, socket }) => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    elements.forEach(element => {
+    elements.forEach((element) => {
       if (element.type === "pencil") {
-        roughCanvas.linearPath(element.path, { stroke: element.stroke, strokeWidth: 5, roughness: 0 });
+        roughCanvas.linearPath(element.path, {
+          stroke: element.stroke,
+          strokeWidth: 5,
+          roughness: 0,
+        });
       } else if (element.type === "line") {
         roughCanvas.draw(
-          roughGenerator.line(element.offsetX, element.offsetY, element.width, element.height, {
-            stroke: element.stroke,
-            strokeWidth: 5,
-            roughness: 0,
-          })
+          roughGenerator.line(
+            element.offsetX,
+            element.offsetY,
+            element.width,
+            element.height,
+            {
+              stroke: element.stroke,
+              strokeWidth: 5,
+              roughness: 0,
+            }
+          )
         );
       } else if (element.type === "shape") {
         roughCanvas.draw(
-          roughGenerator.rectangle(element.offsetX, element.offsetY, element.width, element.height, {
-            stroke: element.stroke,
-            strokeWidth: 5,
-            roughness: 0,
-          })
+          roughGenerator.rectangle(
+            element.offsetX,
+            element.offsetY,
+            element.width,
+            element.height,
+            {
+              stroke: element.stroke,
+              strokeWidth: 5,
+              roughness: 0,
+            }
+          )
         );
       }
     });
@@ -65,38 +111,40 @@ const RoomPage = ({ user, socket }) => {
       const canvasImage = canvas.toDataURL();
       socket.emit("whiteboardData", { canvasImage, roomId: user.roomId });
     }
-    
   }, [elements, socket, user?.roomId, roughGenerator]);
 
-  // Initialize canvas size
+  // Initialize canvas with HiDPI scaling
   useEffect(() => {
     if (!user?.presenter) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.width = window.innerWidth * 2;
-    canvas.height = window.innerHeight * 2;
+
+    const { pixelWidth, pixelHeight, cssWidth, cssHeight, dpr } = canvasSize;
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+    canvas.style.width = `${cssWidth}px`;
+    canvas.style.height = `${cssHeight}px`;
+
     const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
     ctx.strokeStyle = color;
     ctx.lineWidth = 5;
     ctx.lineCap = "round";
-  }, [user?.presenter, color, canvasRef]);
+  }, [user?.presenter, color, canvasRef, canvasSize]);
 
+  // Socket setup for non-presenters
   useEffect(() => {
     if (!user?.roomId) return;
-  
-    // Join the room once
+
     socket.emit("userJoined", { roomId: user.roomId });
-  
-    // Listen for updates
+
     const listener = (data) => {
       if (data.roomId === user.roomId) setImg(data.img);
     };
     socket.on("whiteboardDataResponse", listener);
-  
-    // Cleanup on unmount or when roomId/socket changes
+
     return () => socket.off("whiteboardDataResponse", listener);
   }, [socket, user?.roomId]);
-  
 
   return (
     <div className="w-full h-screen flex flex-col items-center">
@@ -105,15 +153,46 @@ const RoomPage = ({ user, socket }) => {
 
       {/* Toolbar */}
       {user?.presenter && (
-        <Toolbar tool={tool} handleColorClick={handleColorClick} handleColorChange={handleColorChange} color={color} colorInputRef={colorInputRef} elements={elements} undo={undo} redo={redo} clearCanvas={clearCanvas} />
+        <Toolbar
+          tool={tool}
+          setTool={setTool}
+          handleColorClick={handleColorClick}
+          handleColorChange={handleColorChange}
+          color={color}
+          colorInputRef={colorInputRef}
+          elements={elements}
+          undo={undo}
+          redo={redo}
+          clearCanvas={clearCanvas}
+        />
       )}
 
-      {/* Canvas */}
-      <div className="w-[90%] h-1/2 md:h-3/4 border-4 rounded-xl bg-gray-100 overflow-hidden">
+      {/* Canvas or Viewer Image */}
+      <div className="border-4 w-[98%] mb-12 rounded-xl bg-gray-100 overflow-hidden flex justify-center items-center" >
         {user?.presenter ? (
-          <canvas ref={canvasRef} onPointerDown={(e) => handleMouseDown(e, tool)} onPointerMove={(e) => handleMouseMove(e, tool)} onPointerUp={handleMouseUp} className="touch-none" />
+          <canvas
+            ref={canvasRef}
+            onPointerDown={(e) => handleMouseDown(e, tool)}
+            onPointerMove={(e) => handleMouseMove(e, tool)}
+            onPointerUp={handleMouseUp}
+            className="touch-none"
+            style={{ backgroundImage: `url(${map})`, backgroundSize: "cover", backgroundPosition: "center" }}
+          />
         ) : (
-          img && <img src={img} alt="Realtime Whiteboard" />
+          img && (
+            <img
+              src={img}
+              alt="Realtime Whiteboard"
+              style={{
+                backgroundImage: `url(${map})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                display: "block",
+                width: `${canvasSize.cssWidth}px`,
+                height: `${canvasSize.cssHeight}px`,
+              }}
+            />
+          )
         )}
       </div>
     </div>
