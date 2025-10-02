@@ -40,6 +40,26 @@ const RoomPage = ({ user, socket }) => {
     };
   });
 
+  useEffect(() => {
+    if (!user?.roomId) return;
+  
+    socket.emit("userJoined", { roomId: user.roomId }, (res) => {
+      if (res.success) {
+      }
+    });
+  
+    const handleCount = ({ roomId, count }) => {
+      if (roomId === user.roomId) {
+        setUserCount(count);
+      }
+    };
+  
+    socket.on("userCountUpdate", handleCount);
+  
+    return () => socket.off("userCountUpdate", handleCount);
+  }, [socket, user?.roomId]);
+  
+
   // Resize listener (optional, keeps everything responsive)
   useEffect(() => {
     const handleResize = () => {

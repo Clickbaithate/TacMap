@@ -11,7 +11,7 @@ const io = new Server(server, {
 });
 
 // Store per-room data
-const rooms = {}; // { roomId: { img: <lastImage> } }
+const rooms = {}; // { roomId: { img: <lastImage>, Set<socket.id> } }
 
 io.on("connection", (socket) => {
 
@@ -19,10 +19,15 @@ io.on("connection", (socket) => {
     const { roomId } = data;
 
     socket.join(roomId);
+    socket.roomId = roomId;
 
     if (!rooms[roomId]) {
-      rooms[roomId] = { img: null };
+      rooms[roomId] = { img: null, users: new Set() };
     }
+    rooms[roomId].users.add(socket.id);
+
+    const count = rooms[roomId].users.size;
+    io.to(roomId).emit("userCountUpdate", { roomId, count });
 
     // Confirm join back to client
     if (ack) ack({ success: true, roomId });
@@ -31,6 +36,18 @@ io.on("connection", (socket) => {
       socket.emit("whiteboardDataResponse", { img: rooms[roomId].img, roomId });
     }
   });
+
+  socket.on("disconnect", () => {
+    const roomId = socket.roomId;
+    if (roomId && rooms[roomId]) {
+      rooms[roomId].users.delete(socket.id);
+      io.to(roomId).emit("userCountUpdate", {
+        roomId,
+        count: rooms[roomId].users.size
+      });
+    }
+    console.log("[server] client disconnected:", socket.id);
+  });  
 
   socket.on("whiteboardData", (data, ack) => {
     const { canvasImage, roomId } = data;
@@ -43,9 +60,6 @@ io.on("connection", (socket) => {
     if (ack) ack({ ok: true, roomId });
   });
 
-  socket.on("disconnect", () => {
-    console.log("[server] client disconnected:", socket.id);
-  });
 });
 
 
