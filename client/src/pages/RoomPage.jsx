@@ -7,21 +7,10 @@ import Toolbar from "../components/Toolbar";
 import temp from "../assets/temp.jpg";
 
 const RoomPage = ({ user, socket }) => {
+
   const colorInputRef = useRef(null);
   const roughGenerator = useMemo(() => rough.generator(), []);
-
-  const {
-    canvasRef,
-    elements,
-    color,
-    setColor,
-    undo,
-    redo,
-    clearCanvas,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-  } = useCanvas("#000000");
+  const { canvasRef, elements, color, setColor, undo, redo, clearCanvas, handleMouseDown, handleMouseMove, handleMouseUp } = useCanvas("#000000");
 
   const [tool, setTool] = useState("pencil");
   const [img, setImg] = useState(null);
@@ -31,31 +20,22 @@ const RoomPage = ({ user, socket }) => {
   // Track CSS and pixel sizes of canvas
   const [canvasSize, setCanvasSize] = useState(() => {
     const dpr = window.devicePixelRatio || 1;
-    return {
-      cssWidth: window.innerWidth,
-      cssHeight: window.innerHeight,
-      pixelWidth: window.innerWidth * dpr,
-      pixelHeight: window.innerHeight * dpr,
-      dpr,
-    };
+    return { cssWidth: window.innerWidth, cssHeight: window.innerHeight, pixelWidth: window.innerWidth * dpr, pixelHeight: window.innerHeight * dpr, dpr };
   });
 
   useEffect(() => {
     if (!user?.roomId) return;
   
+    // Receives awknwoledgement from server that user joined
     socket.emit("userJoined", { roomId: user.roomId }, (res) => {
       if (res.success) {
       }
     });
   
-    const handleCount = ({ roomId, count }) => {
-      if (roomId === user.roomId) {
-        setUserCount(count);
-      }
-    };
-  
+    // Listening for any updates of room user count from server
+    // IMPORTANT: CLeanup listener to avoid stacking multiple listeners when roomId changes
+    const handleCount = ({ roomId, count }) => { if (roomId === user.roomId) setUserCount(count) };
     socket.on("userCountUpdate", handleCount);
-  
     return () => socket.off("userCountUpdate", handleCount);
   }, [socket, user?.roomId]);
   
@@ -134,6 +114,7 @@ const RoomPage = ({ user, socket }) => {
   }, [elements, socket, user?.roomId, roughGenerator]);
 
   // Initialize canvas with HiDPI scaling
+  // This was ChatGPT attemping to solve image scaling issues, not really sure what is happening. It didn't work fully but almost
   useEffect(() => {
     if (!user?.presenter) return;
     const canvas = canvasRef.current;
@@ -152,17 +133,15 @@ const RoomPage = ({ user, socket }) => {
     ctx.lineCap = "round";
   }, [user?.presenter, color, canvasRef, canvasSize]);
 
-  // Socket setup for non-presenters
+  // Socket setup for viewers
   useEffect(() => {
-    if (!user?.roomId) return;
+    if (!user?.roomId || user?.host) return;
 
+    // Once user joins, receive image from server if the room already has an image
+    // IMPORTANT: CLeanup listener to avoid stacking multiple listeners when roomId changes
     socket.emit("userJoined", { roomId: user.roomId });
-
-    const listener = (data) => {
-      if (data.roomId === user.roomId) setImg(data.img);
-    };
+    const listener = (data) => { if (data.roomId === user.roomId) setImg(data.img) };
     socket.on("whiteboardDataResponse", listener);
-
     return () => socket.off("whiteboardDataResponse", listener);
   }, [socket, user?.roomId]);
 
@@ -172,46 +151,16 @@ const RoomPage = ({ user, socket }) => {
       <Title userCount={userCount} />
 
       {/* Toolbar */}
-      {user?.presenter && (
-        <Toolbar
-          tool={tool}
-          setTool={setTool}
-          handleColorClick={handleColorClick}
-          handleColorChange={handleColorChange}
-          color={color}
-          colorInputRef={colorInputRef}
-          elements={elements}
-          undo={undo}
-          redo={redo}
-          clearCanvas={clearCanvas}
-        />
-      )}
+      {user?.presenter && ( <Toolbar tool={tool} setTool={setTool} handleColorClick={handleColorClick} handleColorChange={handleColorChange} color={color} colorInputRef={colorInputRef} elements={elements} undo={undo} redo={redo} clearCanvas={clearCanvas} /> )}
 
       {/* Canvas or Viewer Image */}
+      {/* If presenter they get interactive canvas, if viewer they get static image */}
       <div className="border-4 w-[98%] mb-12 rounded-xl bg-gray-100 overflow-hidden flex justify-center items-center" >
         {user?.presenter ? (
-          <canvas
-            ref={canvasRef}
-            onPointerDown={(e) => handleMouseDown(e, tool)}
-            onPointerMove={(e) => handleMouseMove(e, tool)}
-            onPointerUp={handleMouseUp}
-            className="touch-none"
-            style={{ backgroundImage: `url(${map})`, backgroundSize: "cover", backgroundPosition: "center" }}
-          />
+          <canvas ref={canvasRef} onPointerDown={(e) => handleMouseDown(e, tool)} onPointerMove={(e) => handleMouseMove(e, tool)} onPointerUp={handleMouseUp} className="touch-none" style={{ backgroundImage: `url(${map})`, backgroundSize: "cover", backgroundPosition: "center" }} />
         ) : (
           img && (
-            <img
-              src={img}
-              alt="Realtime Whiteboard"
-              style={{
-                backgroundImage: `url(${map})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                display: "block",
-                width: `${canvasSize.cssWidth}px`,
-                height: `${canvasSize.cssHeight}px`,
-              }}
-            />
+            <img src={img} alt="Realtime Whiteboard" style={{ backgroundImage: `url(${map})`, backgroundSize: "cover", backgroundPosition: "center", display: "block", width: `${canvasSize.cssWidth}px`, height: `${canvasSize.cssHeight}px` }} />
           )
         )}
       </div>

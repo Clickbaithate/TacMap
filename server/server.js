@@ -3,60 +3,70 @@ const app = express();
 
 const server = require("http").createServer(app);
 const { Server } = require("socket.io");
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
+const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
-// Store per-room data
-const rooms = {}; // { roomId: { img: <lastImage>, Set<socket.id> } }
+// Server holds a list of different rooms
+// Each object in "rooms" is a room that holds the latest room image and a list of its users
+const rooms = {};
 
+// Everytime a user joins
 io.on("connection", (socket) => {
 
   socket.on("userJoined", (data, ack) => {
-    const { roomId } = data;
 
+    // Receive roomId from client
+    // Puts users into group called roomId
+    const { roomId } = data;
     socket.join(roomId);
     socket.roomId = roomId;
 
-    if (!rooms[roomId]) {
-      rooms[roomId] = { img: null, users: new Set() };
-    }
+    // If no object of roomId exists in the rooms list, intialize new room object
+    // Then in the users list of that specific room, add the user who just joined
+    if (!rooms[roomId]) rooms[roomId] = { img: null, users: new Set() };
     rooms[roomId].users.add(socket.id);
 
+    // Recount the number of users in this specific room, and send that number to all users in the room, including the current user
     const count = rooms[roomId].users.size;
     io.to(roomId).emit("userCountUpdate", { roomId, count });
 
-    // Confirm join back to client
+    // Confirm that the user join back to the client
     if (ack) ack({ success: true, roomId });
 
-    if (rooms[roomId].img) {
-      socket.emit("whiteboardDataResponse", { img: rooms[roomId].img, roomId });
-    }
+    // If the room already has an image, send that image to the user who just joined
+    // Otherwise they stay with an blank canvas unless the image is updated again
+    // Note that socket.emit only sends the data to the current user, it is redundant to send this data to EVERYONE
+    if (rooms[roomId].img) socket.emit("whiteboardDataResponse", { img: rooms[roomId].img, roomId });
   });
 
+  // Everytime a user disconnects
   socket.on("disconnect", () => {
+
+    // Get the roomId of the current socket group
+    // If the room exists, delete the user from the users list of that room, then send out the updated count number
+    // Note that io.to(roomId).emit sends that count to all clients in the group except the current client
     const roomId = socket.roomId;
     if (roomId && rooms[roomId]) {
       rooms[roomId].users.delete(socket.id);
-      io.to(roomId).emit("userCountUpdate", {
-        roomId,
-        count: rooms[roomId].users.size
-      });
+      io.to(roomId).emit("userCountUpdate", { roomId, count: rooms[roomId].users.size });
     }
-    console.log("[server] client disconnected:", socket.id);
   });  
 
+  // Custom event channel made for keeping track of the canvas data
   socket.on("whiteboardData", (data, ack) => {
+
+    // Recieve the latest canvas image and roomId that it came from, all this from the client aka the presenter
     const { canvasImage, roomId } = data;
 
+    // If the room exists, assign the room image with the new updated image
+    // Send that latest image to everyone in the room
+    // Note that socket.to(roomId).emit will send that image to everyone execept the current client
+    // It is redundant to send it to the current client because they already have the image
     if (roomId && rooms[roomId]) {
       rooms[roomId].img = canvasImage;
       socket.to(roomId).emit("whiteboardDataResponse", { img: canvasImage, roomId });
     }
 
+    // Confirm to user that image was sent
     if (ack) ack({ ok: true, roomId });
   });
 
