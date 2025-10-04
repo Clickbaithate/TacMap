@@ -10,7 +10,7 @@ const RoomPage = ({ user, socket }) => {
 
   const colorInputRef = useRef(null);
   const roughGenerator = useMemo(() => rough.generator(), []);
-  const { canvasRef, elements, color, setColor, undo, redo, clearCanvas, handleMouseDown, handleMouseMove, handleMouseUp } = useCanvas("#000000");
+  const { canvasRef, elements, history, color, setColor, undo, redo, clearCanvas, handleMouseDown, handleMouseMove, handleMouseUp } = useCanvas("#000000");
 
   const [tool, setTool] = useState("pencil");
   const [img, setImg] = useState(null);
@@ -151,7 +151,7 @@ const RoomPage = ({ user, socket }) => {
       <Title userCount={userCount} />
 
       {/* Toolbar */}
-      {user?.presenter && ( <Toolbar tool={tool} setTool={setTool} handleColorClick={handleColorClick} handleColorChange={handleColorChange} color={color} colorInputRef={colorInputRef} elements={elements} undo={undo} redo={redo} clearCanvas={clearCanvas} /> )}
+      {user?.presenter && ( <Toolbar tool={tool} setTool={setTool} handleColorClick={handleColorClick} handleColorChange={handleColorChange} color={color} colorInputRef={colorInputRef} elements={elements} history={history} undo={undo} redo={redo} clearCanvas={clearCanvas} /> )}
 
       {/* Canvas or Viewer Image */}
       {/* If presenter they get interactive canvas, if viewer they get static image */}

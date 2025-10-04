@@ -2,7 +2,7 @@ import { FaPaintbrush, FaArrowRight, FaShapes, FaCaretDown } from "react-icons/f
 import { FaUndo, FaRedo, FaTrash } from "react-icons/fa";
 
 // TODO: Add disabled cursor icon when hovering over disabled button
-const Toolbar = ({ tool, setTool, handleColorClick, handleColorChange, color, colorInputRef, elements, undo, redo, clearCanvas }) => {
+const Toolbar = ({ tool, setTool, handleColorClick, handleColorChange, color, colorInputRef, elements, history, undo, redo, clearCanvas }) => {
   
   return(
     <div className="w-full h-16 flex mb-6 justify-between px-6">
