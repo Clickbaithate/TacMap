@@ -28,8 +28,7 @@ const RoomPage = ({ user, socket }) => {
   
     // Receives awknwoledgement from server that user joined
     socket.emit("userJoined", { roomId: user.roomId }, (res) => {
-      if (res.success) {
-      }
+      if (res.success) console.log("Joined Room:", user.roomId);
     });
   
     // Listening for any updates of room user count from server
@@ -135,7 +134,7 @@ const RoomPage = ({ user, socket }) => {
 
   // Socket setup for viewers
   useEffect(() => {
-    if (!user?.roomId || user?.host) return;
+    if (!user?.roomId || user?.presenter) return;
 
     // Once user joins, receive image from server if the room already has an image
     // IMPORTANT: CLeanup listener to avoid stacking multiple listeners when roomId changes

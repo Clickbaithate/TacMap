@@ -22,15 +22,17 @@ const HomePage = ({ socket, setUser }) => {
   const handleGenerateRoom = (e) => {
     e.preventDefault();
     
+    const userId = uuidv4();
     const roomData = {
       name: createName,
       roomId: roomId,
-      userId: uuidv4(),
+      userId: userId,
       host: true,
       presenter: true
     };
 
     setUser(roomData);
+    localStorage.setItem("user", JSON.stringify({ createName, userId, roomId, presenter: true }));
     navigate(`/${roomId}`)
     socket.emit("userJoined", roomData);
   }
@@ -38,15 +40,17 @@ const HomePage = ({ socket, setUser }) => {
   const handleJoinRoom = (e) => {
     e.preventDefault();
 
+    const userId = uuidv4();
     const roomData = {
       name: joinName, 
       roomId: joinRoomId, 
-      userId: uuidv4(),
+      userId: userId,
       host: false, 
       presenter: false
     }
 
     setUser(roomData);
+    localStorage.setItem("user", JSON.stringify({ joinName, userId, roomId: joinRoomId, presenter: false }));
     navigate(`/${joinRoomId}`)
     socket.emit("userJoined", roomData);
   }

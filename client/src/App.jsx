@@ -16,14 +16,11 @@ const socket = io(server, connectionOptions);
 
 const App = () => {
 
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    socket.on("userIsJoined", (data) => {
-      if (data.success) console.log("User Has Joined!");
-      else console.log("User Error!");
-    });
-  }, []);
+  // Get user info from local storage in case of page refresh
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  });
 
   return(
     <div className="w-full h-screen flex">
