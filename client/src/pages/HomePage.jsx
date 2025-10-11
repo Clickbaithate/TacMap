@@ -32,7 +32,7 @@ const HomePage = ({ socket, setUser }) => {
     };
 
     setUser(roomData);
-    localStorage.setItem("user", JSON.stringify({ createName, userId, roomId, presenter: true }));
+    localStorage.setItem("user", JSON.stringify({ name: createName, userId, roomId, presenter: true }));
     navigate(`/${roomId}`)
     socket.emit("userJoined", roomData);
   }
@@ -50,9 +50,8 @@ const HomePage = ({ socket, setUser }) => {
     }
 
     setUser(roomData);
-    localStorage.setItem("user", JSON.stringify({ joinName, userId, roomId: joinRoomId, presenter: false }));
-    navigate(`/${joinRoomId}`)
-    socket.emit("userJoined", roomData);
+    localStorage.setItem("user", JSON.stringify({ name: joinName, userId, roomId: joinRoomId, presenter: false }));
+    navigate(`/${joinRoomId}`);
   }
 
   useEffect(() => {

@@ -16,7 +16,8 @@ io.on("connection", (socket) => {
 
     // Receive roomId from client
     // Puts users into group called roomId
-    const { roomId } = data;
+    const roomId = data.roomId;
+    const name = data.name;
     socket.join(roomId);
     socket.roomId = roomId;
 
@@ -27,7 +28,7 @@ io.on("connection", (socket) => {
 
     // Recount the number of users in this specific room, and send that number to all users in the room, including the current user
     const count = rooms[roomId].users.size;
-    io.to(roomId).emit("userCountUpdate", { roomId, count });
+    io.to(roomId).emit("userCountUpdate", { roomId, count, name });
 
     // Confirm that the user join back to the client
     if (ack) ack({ success: true, roomId });

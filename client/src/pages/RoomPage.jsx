@@ -16,6 +16,8 @@ const RoomPage = ({ user, socket }) => {
   const [img, setImg] = useState(null);
   const [userCount, setUserCount] = useState(0);
   const [map, setMap] = useState(temp);
+  const [joined, setJoined] = useState(false);
+  const [joinee, setJoinee] = useState("");
 
   // Track CSS and pixel sizes of canvas
   const [canvasSize, setCanvasSize] = useState(() => {
@@ -25,15 +27,24 @@ const RoomPage = ({ user, socket }) => {
 
   useEffect(() => {
     if (!user?.roomId) return;
-  
-    // Receives awknwoledgement from server that user joined
-    socket.emit("userJoined", { roomId: user.roomId }, (res) => {
-      if (res.success) console.log("Joined Room:", user.roomId);
-    });
-  
+
+    // Emit to userJoined in here for the host so count updates properly
+    // Basically if you emit in the homePage, count stays at 0 then updates to 2 instead of 1 => 2
+    socket.emit("userJoined", user);
+
     // Listening for any updates of room user count from server
     // IMPORTANT: CLeanup listener to avoid stacking multiple listeners when roomId changes
-    const handleCount = ({ roomId, count }) => { if (roomId === user.roomId) setUserCount(count) };
+    // Show everyone who joined
+    const handleCount = ({ roomId, count, name }) => {
+      if (roomId === user.roomId) {
+        setUserCount(count);
+        if (name && name.trim()) {
+          setJoinee(name);
+          setJoined(true);
+          setTimeout(() => setJoined(false), 3000);
+        }
+      }
+    };    
     socket.on("userCountUpdate", handleCount);
     return () => socket.off("userCountUpdate", handleCount);
   }, [socket, user?.roomId]);
@@ -138,7 +149,7 @@ const RoomPage = ({ user, socket }) => {
 
     // Once user joins, receive image from server if the room already has an image
     // IMPORTANT: CLeanup listener to avoid stacking multiple listeners when roomId changes
-    socket.emit("userJoined", { roomId: user.roomId });
+    socket.emit("userJoined", { roomId: user.roomId, name: user.name });
     const listener = (data) => { if (data.roomId === user.roomId) setImg(data.img) };
     socket.on("whiteboardDataResponse", listener);
     return () => socket.off("whiteboardDataResponse", listener);
@@ -148,6 +159,9 @@ const RoomPage = ({ user, socket }) => {
     <div className="w-full h-screen flex flex-col items-center">
       {/* Title */}
       <Title userCount={userCount} />
+
+      {/* Message of who joined */}
+      <div className={`fixed top-0 left-0 m-6 p-3 rounded-xl font-lilita shadow-xl border-2 ransform transition-all duration-500 ease-in-out bg-blue-300 ${joined ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"}`}>{joinee} has joined the room! </div>
 
       {/* Toolbar */}
       {user?.presenter && ( <Toolbar tool={tool} setTool={setTool} handleColorClick={handleColorClick} handleColorChange={handleColorChange} color={color} colorInputRef={colorInputRef} elements={elements} history={history} undo={undo} redo={redo} clearCanvas={clearCanvas} /> )}
