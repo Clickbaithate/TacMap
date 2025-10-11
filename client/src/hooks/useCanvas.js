@@ -1,11 +1,21 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export const useCanvas = (initialColor = "#ff0000") => {
+
   const canvasRef = useRef(null);
   const [elements, setElements] = useState([]);
   const [history, setHistory] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState(initialColor);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("elements");
+    if (saved) setElements(JSON.parse(saved));
+  }, []);
+  
+  useEffect(() => {
+    localStorage.setItem("elements", JSON.stringify(elements));
+  }, [elements]);  
 
   const undo = () => {
     if (elements.length === 0) return;
