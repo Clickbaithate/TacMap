@@ -12,21 +12,21 @@ const Toolbar = ({ tool, setTool, handleColorClick, handleColorChange, color, co
         <button className={`border-2 p-1 rounded-md cursor-pointer hover:text-green-500 ${tool === "shape" ? "bg-gray-300 border-blue-500" : "border-gray-400"}`} onClick={() => setTool("shape")}><FaShapes /></button>
 
         <div
-  className="flex items-center cursor-pointer px-2 py-1 bg-white rounded-md border border-gray-400 hover:border-red-500 relative"
-  onClick={handleColorClick}
->
-  <div className="w-6 h-6 rounded-full border border-gray-400" style={{ backgroundColor: color }} />
-  <FaCaretDown className="ml-2 text-gray-700" />
+          className="flex items-center cursor-pointer px-2 py-1 bg-white rounded-md border border-gray-400 hover:border-red-500 relative"
+          onClick={handleColorClick}
+        >
+          <div className="w-6 h-6 rounded-full border border-gray-400" style={{ backgroundColor: color }} />
+          <FaCaretDown className="ml-2 text-gray-700" />
 
-  {/* Color input */}
-  <input
-    type="color"
-    ref={colorInputRef}
-    value={color}
-    onChange={handleColorChange}
-    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-  />
-</div>
+          {/* Color input */}
+          <input
+            type="color"
+            ref={colorInputRef}
+            value={color}
+            onChange={handleColorChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+        </div>
 
       </div>
 
