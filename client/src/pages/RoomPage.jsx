@@ -20,6 +20,7 @@ const RoomPage = ({ user, socket }) => {
   const [joined, setJoined] = useState(false);
   const [joinee, setJoinee] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
+  const [text, setText] = useState("");
 
   // Track CSS and pixel sizes of canvas
   const [canvasSize, setCanvasSize] = useState(() => {
@@ -70,6 +71,10 @@ const RoomPage = ({ user, socket }) => {
 
   const handleColorClick = () => colorInputRef.current.click();
   const handleColorChange = (e) => setColor(e.target.value);
+  const handleSend = () => {
+    console.log("Sending: ", text);
+    setText("");
+  }
 
   const messages = [
     { name: "Alex", message: "Hey, how’s it going?" },
@@ -203,8 +208,8 @@ const RoomPage = ({ user, socket }) => {
             </div>
           ))}
           <div className="fixed bottom-0 left-0 w-full flex my-4 items-center justify-center">
-            <input className="w-full h-16 border-2 mx-2 ml-3 bg-gray-200 rounded-2xl p-2 font-lilita" placeholder="Start typing..."/>
-            <div className="w-20 h-16 my-4 mr-6 rounded-xl flex items-center justify-center border-2 cursor-pointer hover:bg-blue-300 bg-blue-200"><FaPaperPlane/></div>
+            <input className="w-full h-16 border-2 mx-2 ml-3 bg-gray-200 rounded-2xl p-2 font-lilita" placeholder="Start typing..." value={text} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSend(); } }} onChange={(e) => setText(e.target.value)}/>
+            <div className="w-20 h-16 my-4 mr-6 rounded-xl flex items-center justify-center border-2 cursor-pointer hover:bg-blue-300 bg-blue-200" onClick={handleSend}><FaPaperPlane/></div>
           </div>
         </div>
       </div>
