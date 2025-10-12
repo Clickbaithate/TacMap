@@ -4,7 +4,8 @@ import { useCanvas } from "../hooks/useCanvas";
 import Title from "../components/Title";
 import Toolbar from "../components/Toolbar";
 
-import temp from "../assets/temp.jpg";
+import temp from "../assets/background.png";
+import { FaChevronLeft, FaChevronRight, FaPaperPlane } from "react-icons/fa6";
 
 const RoomPage = ({ user, socket }) => {
 
@@ -18,6 +19,7 @@ const RoomPage = ({ user, socket }) => {
   const [map, setMap] = useState(temp);
   const [joined, setJoined] = useState(false);
   const [joinee, setJoinee] = useState("");
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Track CSS and pixel sizes of canvas
   const [canvasSize, setCanvasSize] = useState(() => {
@@ -68,6 +70,29 @@ const RoomPage = ({ user, socket }) => {
 
   const handleColorClick = () => colorInputRef.current.click();
   const handleColorChange = (e) => setColor(e.target.value);
+
+  const messages = [
+    { name: "Alex", message: "Hey, how’s it going?" },
+    { name: "Jordan", message: "Just finished work, what’s up?" },
+    { name: "Sam", message: "Anyone down to play tonight? Anyone down to play tonight? Anyone down to play tonight? Anyone down to play tonight?" },
+    { name: "Taylor", message: "That meeting was way too long 😩" },
+    { name: "Casey", message: "I’ll bring snacks for tomorrow!" },
+    { name: "Riley", message: "Check out this new update 🚀" },
+    { name: "Morgan", message: "Can someone send me the link again?" },
+    { name: "Jamie", message: "I’m on my way!" },
+    { name: "Avery", message: "Good morning everyone ☀️" },
+    { name: "Chris", message: "LOL that was hilarious 😂" },
+    { name: "Jordan", message: "You guys ready for the weekend?" },
+    { name: "Alex", message: "Let’s meet at 7, sound good?" },
+    { name: "Sam", message: "Can’t believe it’s already Friday!" },
+    { name: "Taylor", message: "That game was intense!" },
+    { name: "Casey", message: "I made some coffee if anyone wants" },
+    { name: "Riley", message: "Pushing the new code now" },
+    { name: "Morgan", message: "Let’s take a quick break" },
+    { name: "Jamie", message: "I’ll update the doc in a sec" },
+    { name: "Avery", message: "Don’t forget the meeting at 3" },
+    { name: "Chris", message: "Alright, see y’all tomorrow 👋" },
+  ];  
 
   // Drawing effect
   useLayoutEffect(() => {
@@ -161,7 +186,28 @@ const RoomPage = ({ user, socket }) => {
       <Title userCount={userCount} />
 
       {/* Message of who joined */}
-      <div className={`fixed top-0 left-0 m-6 p-3 rounded-xl font-lilita shadow-xl border-2 ransform transition-all duration-500 ease-in-out bg-blue-300 ${joined ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"}`}>{joinee} has joined the room! </div>
+      <div className={`fixed top-0 left-0 m-6 p-3 rounded-xl font-lilita shadow-xl border-2 transform transition-all duration-500 ease-in-out bg-blue-300 ${joined ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"}`}>{joinee} has joined the room! </div>
+      <div 
+        className={`fixed top-0 right-0 z-30 m-6 p-2 border-2 rounded-xl cursor-pointer bg-gray-100 hover:bg-gray-300 transform transition-all duration-500 ease-in-out ${chatOpen ? "-translate-x-[80vw] md:-translate-x-[39vw]" : "translate-x-0"}`}
+        onClick={() => setChatOpen(!chatOpen)}
+      >
+        { chatOpen ? <FaChevronRight/> : <FaChevronLeft/> }
+      </div>
+      <div className={`fixed top-0 right-0 w-5/6 md:w-2/5 h-screen rounded-tl-3xl rounded-bl-3xl border-2 bg-gray-300 transform transition-all duration-500 ease-in-out ${chatOpen ? "-translate-x-0 opacity-100 z-20" : "translate-x-10 opacity-0 -z-10"}`}>
+        <div className="flex items-center justify-center font-lilita p-6 text-xl">Chat Room</div>
+        <div className="px-3 space-y-2 h-[90%] rounded-4xl overflow-y-auto flex flex-col pb-22">
+          {messages.map((msg, index) => (
+            <div key={index} className="p-3 bg-gray-100 rounded-lg shadow-md" >
+              <strong className="block text-blue-400 font-bold italic">{msg.name}</strong>
+              <p className="text-gray-600 font-lilita">{msg.message}</p>
+            </div>
+          ))}
+          <div className="fixed bottom-0 left-0 w-full flex my-4 items-center justify-center">
+            <input className="w-full h-16 border-2 mx-2 ml-3 bg-gray-200 rounded-2xl p-2 font-lilita" placeholder="Start typing..."/>
+            <div className="w-20 h-16 my-4 mr-6 rounded-xl flex items-center justify-center border-2 cursor-pointer hover:bg-blue-300 bg-blue-200"><FaPaperPlane/></div>
+          </div>
+        </div>
+      </div>
 
       {/* Toolbar */}
       {user?.presenter && ( <Toolbar tool={tool} setTool={setTool} handleColorClick={handleColorClick} handleColorChange={handleColorChange} color={color} colorInputRef={colorInputRef} elements={elements} history={history} undo={undo} redo={redo} clearCanvas={clearCanvas} /> )}

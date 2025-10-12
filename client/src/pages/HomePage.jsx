@@ -32,6 +32,7 @@ const HomePage = ({ socket, setUser }) => {
     };
 
     setUser(roomData);
+    localStorage.clear();
     localStorage.setItem("user", JSON.stringify({ name: createName, userId, roomId, presenter: true }));
     navigate(`/${roomId}`)
     socket.emit("userJoined", roomData);
