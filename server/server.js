@@ -23,7 +23,7 @@ io.on("connection", (socket) => {
 
     // If no object of roomId exists in the rooms list, intialize new room object
     // Then in the users list of that specific room, add the user who just joined
-    if (!rooms[roomId]) rooms[roomId] = { img: null, users: new Set() };
+    if (!rooms[roomId]) rooms[roomId] = { img: null, users: new Set(), messages: [] };
     rooms[roomId].users.add(socket.id);
 
     // Recount the number of users in this specific room, and send that number to all users in the room, including the current user
@@ -37,6 +37,27 @@ io.on("connection", (socket) => {
     // Otherwise they stay with an blank canvas unless the image is updated again
     // Note that socket.emit only sends the data to the current user, it is redundant to send this data to EVERYONE
     if (rooms[roomId].img) socket.emit("whiteboardDataResponse", { img: rooms[roomId].img, roomId });
+
+    // Send full chat log to the user who just joined (only once)
+    if (rooms[roomId].messages.length > 0) {
+      socket.emit("messageHistory", rooms[roomId].messages);
+    }
+  });
+
+  // Handle new messages sent by users
+  socket.on("message", (data) => {
+    const { roomId, name, message } = data;
+
+    // Ensure room exists
+    if (!rooms[roomId]) rooms[roomId] = { img: null, users: new Set(), messages: [] };
+
+    const newMsg = { roomId, name, message };
+
+    // Store the message in the room
+    rooms[roomId].messages.push(newMsg);
+
+    // Send only the new message to everyone in the room
+    io.to(roomId).emit("messageResponse", newMsg);
   });
 
   // Everytime a user disconnects

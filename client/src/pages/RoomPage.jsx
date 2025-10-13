@@ -21,6 +21,7 @@ const RoomPage = ({ user, socket }) => {
   const [joinee, setJoinee] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
   const [text, setText] = useState("");
+  const [messages, setMessages] = useState([]);
 
   // Track CSS and pixel sizes of canvas
   const [canvasSize, setCanvasSize] = useState(() => {
@@ -52,6 +53,27 @@ const RoomPage = ({ user, socket }) => {
     return () => socket.off("userCountUpdate", handleCount);
   }, [socket, user?.roomId]);
   
+  useEffect(() => {
+    const handleMessageHistory = (history) => {
+      // set full chat log (initial load)
+      setMessages(history);
+    };
+  
+    const handleMessageResponse = (data) => {
+      // add a single live message
+      if (data.name === user.name) return;
+      setMessages((prev) => [...prev, data]);
+    };
+  
+    socket.on("messageHistory", handleMessageHistory);
+    socket.on("messageResponse", handleMessageResponse);
+  
+    // cleanup
+    return () => {
+      socket.off("messageHistory", handleMessageHistory);
+      socket.off("messageResponse", handleMessageResponse);
+    };
+  }, [socket]);
 
   // Resize listener (optional, keeps everything responsive)
   useEffect(() => {
@@ -72,32 +94,12 @@ const RoomPage = ({ user, socket }) => {
   const handleColorClick = () => colorInputRef.current.click();
   const handleColorChange = (e) => setColor(e.target.value);
   const handleSend = () => {
-    console.log("Sending: ", text);
-    setText("");
-  }
+    if (text.trim() === "") return;
 
-  const messages = [
-    { name: "Alex", message: "Hey, how’s it going?" },
-    { name: "Jordan", message: "Just finished work, what’s up?" },
-    { name: "Sam", message: "Anyone down to play tonight? Anyone down to play tonight? Anyone down to play tonight? Anyone down to play tonight?" },
-    { name: "Taylor", message: "That meeting was way too long 😩" },
-    { name: "Casey", message: "I’ll bring snacks for tomorrow!" },
-    { name: "Riley", message: "Check out this new update 🚀" },
-    { name: "Morgan", message: "Can someone send me the link again?" },
-    { name: "Jamie", message: "I’m on my way!" },
-    { name: "Avery", message: "Good morning everyone ☀️" },
-    { name: "Chris", message: "LOL that was hilarious 😂" },
-    { name: "Jordan", message: "You guys ready for the weekend?" },
-    { name: "Alex", message: "Let’s meet at 7, sound good?" },
-    { name: "Sam", message: "Can’t believe it’s already Friday!" },
-    { name: "Taylor", message: "That game was intense!" },
-    { name: "Casey", message: "I made some coffee if anyone wants" },
-    { name: "Riley", message: "Pushing the new code now" },
-    { name: "Morgan", message: "Let’s take a quick break" },
-    { name: "Jamie", message: "I’ll update the doc in a sec" },
-    { name: "Avery", message: "Don’t forget the meeting at 3" },
-    { name: "Chris", message: "Alright, see y’all tomorrow 👋" },
-  ];  
+    socket.emit("message", { roomId: user.roomId, name: user.name, message: text });
+    setMessages([...messages, { name: "YOU", message: text }]);
+    setText("");
+  }  
 
   // Drawing effect
   useLayoutEffect(() => {
